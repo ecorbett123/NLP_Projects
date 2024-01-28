@@ -35,16 +35,26 @@ def get_ngrams(sequence, n):
     Given a sequence, this function should return a list of n-grams, where each n-gram is a Python tuple.
     This should work for arbitrary values of n >= 1 
     """
+    sequence.append('STOP')
+    initial_list = []
     n_gram_list = []
     seq_len = len(sequence)
-    # first_tuple = ['START'] * n
-    # start_index = 0
-    # end_index = 1
+
+    initial_list.extend([sequence[0:0 + i] for i in range(1, min(n, seq_len+1), 1)])
+
+    # pad lists with 'START'
+    for n_gram in initial_list:
+        num_starts = n - len(n_gram)
+        start_list = ['START'] * num_starts
+        n_gram_list.append(start_list + n_gram)
+
+    if n == 1:
+        n_gram_list.append(['START'])
 
     if seq_len >= n:
-        n_gram_list.append([sequence[i:i+n] for i in range(0, seq_len, 1)])
+        n_gram_list.extend([sequence[i:i+n] for i in range(0, seq_len-n+1, 1)])
 
-    # final thing will be adding stop to the next tuple once hit end of sequence
+    n_gram_list = [tuple(x) for x in n_gram_list]
     return n_gram_list
 
 
@@ -110,6 +120,7 @@ class TrigramModel(object):
         Generate a random sentence from the trigram model. t specifies the
         max length, but the sentence may be shorter if STOP is reached.
         """
+        result = []
         return result            
 
     def smoothed_trigram_probability(self, trigram):
