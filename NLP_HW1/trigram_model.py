@@ -35,12 +35,13 @@ def get_ngrams(sequence, n):
     Given a sequence, this function should return a list of n-grams, where each n-gram is a Python tuple.
     This should work for arbitrary values of n >= 1 
     """
-    sequence.append('STOP')
+    sequence_copy = sequence.copy()
+    sequence_copy.append('STOP')
     initial_list = []
     n_gram_list = []
-    seq_len = len(sequence)
+    seq_len = len(sequence_copy)
 
-    initial_list.extend([sequence[0:0 + i] for i in range(1, min(n, seq_len+1), 1)])
+    initial_list.extend([sequence_copy[0:0 + i] for i in range(1, min(n, seq_len+1), 1)])
 
     # pad lists with 'START'
     for n_gram in initial_list:
@@ -52,7 +53,7 @@ def get_ngrams(sequence, n):
         n_gram_list.append(['START'])
 
     if seq_len >= n:
-        n_gram_list.extend([sequence[i:i+n] for i in range(0, seq_len-n+1, 1)])
+        n_gram_list.extend([sequence_copy[i:i+n] for i in range(0, seq_len-n+1, 1)])
 
     n_gram_list = [tuple(x) for x in n_gram_list]
     return n_gram_list
@@ -82,10 +83,30 @@ class TrigramModel(object):
         """
    
         self.unigramcounts = {} # might want to use defaultdict or Counter instead
-        self.bigramcounts = {} 
-        self.trigramcounts = {} 
+        self.bigramcounts = {}
+        self.trigramcounts = {}
+        # Check that this handles new lines correctly (i think it's a corpus iterator so may have to do next)
+        for line in corpus:
+            uni_gram_list = get_ngrams(line, 1)
+            for uni_gram in uni_gram_list:
+                count = 0
+                if uni_gram in self.unigramcounts.keys():
+                    count = self.unigramcounts[uni_gram]
+                self.unigramcounts[uni_gram] = count + 1
 
-        ##Your code here
+            bi_gram_list = get_ngrams(line, 2)
+            for bi_gram in bi_gram_list:
+                count = 0
+                if bi_gram in self.bigramcounts.keys():
+                    count = self.bigramcounts[bi_gram]
+                self.bigramcounts[bi_gram] = count + 1
+
+            tri_gram_list = get_ngrams(line, 3)
+            for tri_gram in tri_gram_list:
+                count = 0
+                if tri_gram in self.trigramcounts.keys():
+                    count = self.trigramcounts[tri_gram]
+                self.trigramcounts[tri_gram] = count + 1
 
         return
 
@@ -169,6 +190,7 @@ def essay_scoring_experiment(training_file1, training_file2, testdir1, testdir2)
 if __name__ == "__main__":
 
     model = TrigramModel(sys.argv[1])
+    #model = TrigramModel('./hw1_data/brown_test.txt')
 
     # put test code here...
     # or run the script from the command line with 
