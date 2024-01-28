@@ -63,12 +63,14 @@ class TrigramModel(object):
     
     def __init__(self, corpusfile):
 
+        self.num_words_in_corpus = 0
         # Iterate through the corpus once to build a lexicon 
         generator = corpus_reader(corpusfile)
         self.lexicon = get_lexicon(generator)
         self.lexicon.add("UNK")
         self.lexicon.add("START")
         self.lexicon.add("STOP")
+        self.lexicon_size = len(self.lexicon)
 
         # Now iterate through the corpus again and count ngrams
         generator = corpus_reader(corpusfile, self.lexicon)
@@ -81,11 +83,11 @@ class TrigramModel(object):
         Given a corpus iterator, populate dictionaries of unigram, bigram,
         and trigram counts. 
         """
-   
+        # TODO: See if should use default dict
         self.unigramcounts = {} # might want to use defaultdict or Counter instead
         self.bigramcounts = {}
         self.trigramcounts = {}
-        # Check that this handles new lines correctly (i think it's a corpus iterator so may have to do next)
+
         for line in corpus:
             uni_gram_list = get_ngrams(line, 1)
             for uni_gram in uni_gram_list:
@@ -93,6 +95,8 @@ class TrigramModel(object):
                 if uni_gram in self.unigramcounts.keys():
                     count = self.unigramcounts[uni_gram]
                 self.unigramcounts[uni_gram] = count + 1
+                # keep track of total number of words
+                self.num_words_in_corpus += 1
 
             bi_gram_list = get_ngrams(line, 2)
             for bi_gram in bi_gram_list:
@@ -115,25 +119,41 @@ class TrigramModel(object):
         COMPLETE THIS METHOD (PART 3)
         Returns the raw (unsmoothed) trigram probability
         """
-        return 0.0
+        u_v = (trigram[0], trigram[1])
+        count_trigram = 0
+        if trigram in self.trigramcounts.keys():
+            count_trigram = self.trigramcounts[trigram]
+
+        if u_v not in self.bigramcounts.keys():
+            return 1/self.lexicon_size
+
+        return count_trigram / self.bigramcounts[u_v]
 
     def raw_bigram_probability(self, bigram):
         """
         COMPLETE THIS METHOD (PART 3)
         Returns the raw (unsmoothed) bigram probability
         """
-        return 0.0
+        u = (bigram[0],)
+
+        if bigram not in self.bigramcounts.keys():
+            return 0.0
+
+        # default count for u is unknown in case passed a word not in the lexicon
+        count_u = self.unigramcounts[('UNK',)]
+        if u in self.unigramcounts.keys():
+            count_u = self.unigramcounts[u]
+
+        return self.bigramcounts[bigram]/count_u
     
     def raw_unigram_probability(self, unigram):
         """
         COMPLETE THIS METHOD (PART 3)
         Returns the raw (unsmoothed) unigram probability.
         """
-
-        #hint: recomputing the denominator every time the method is called
-        # can be slow! You might want to compute the total number of words once, 
-        # store in the TrigramModel instance, and then re-use it.  
-        return 0.0
+        if unigram not in self.unigramcounts.keys():
+            return 0.0
+        return self.unigramcounts[unigram]/self.num_words_in_corpus
 
     def generate_sentence(self,t=20): 
         """
