@@ -83,7 +83,7 @@ class TrigramModel(object):
         Given a corpus iterator, populate dictionaries of unigram, bigram,
         and trigram counts. 
         """
-        # TODO: See if should use default dict
+
         self.unigramcounts = {} # might want to use defaultdict or Counter instead
         self.bigramcounts = {}
         self.trigramcounts = {}
@@ -162,6 +162,42 @@ class TrigramModel(object):
         max length, but the sentence may be shorter if STOP is reached.
         """
         result = []
+        prev_two_tokens = ('START', 'START')
+
+        next_token = ''
+        while next_token != 'STOP' and len(result) < t:
+            trigram_prob_map = {}
+            total_prob = 0
+            for key in self.trigramcounts.keys():
+                if key[0] == prev_two_tokens[0] and key[1] == prev_two_tokens[1] and key[2] != 'UNK':
+                    raw_tri_prob = self.raw_trigram_probability(key)
+                    trigram_prob_map[key] = raw_tri_prob
+                    total_prob += raw_tri_prob
+
+            r = random.random()*total_prob
+            cur_total_prob = 0
+
+            if total_prob > 0:
+                for key in trigram_prob_map:
+                    cur_total_prob += trigram_prob_map[key]
+                    if cur_total_prob >= r:
+                        next_token = key[2]
+                        result.append(next_token)
+                        prev_two_tokens = (prev_two_tokens[1], next_token)
+                        break
+            else:
+                # TODO: if i had more time, this would be handled more elegantly, perhaps by looking at bigram probs next
+                # if two word sequence has never appeared, the next word is chosen randomly
+                l = random.random()*self.lexicon_size
+                for word in self.lexicon:
+                    cur_total_prob += 1
+                    if cur_total_prob >= l:
+                        next_token = word
+                        result.append(next_token)
+                        prev_two_tokens = (prev_two_tokens[1], next_token)
+                        break
+        if len(result) >= t:
+            result.append('STOP')
         return result            
 
     def smoothed_trigram_probability(self, trigram):
@@ -172,21 +208,38 @@ class TrigramModel(object):
         lambda1 = 1/3.0
         lambda2 = 1/3.0
         lambda3 = 1/3.0
-        return 0.0
+        bigram = (trigram[1], trigram[2])
+        unigram = (trigram[2], )
+
+        return lambda1*self.raw_trigram_probability(trigram) + lambda2*self.raw_bigram_probability(bigram) + lambda3*self.raw_unigram_probability(unigram)
         
     def sentence_logprob(self, sentence):
         """
         COMPLETE THIS METHOD (PART 5)
         Returns the log probability of an entire sequence.
         """
-        return float("-inf")
+        ngrams = get_ngrams(sentence, 3)
+        total_prob = 0
+        for trigram in ngrams:
+            smoothed_trigram = self.smoothed_trigram_probability(trigram)
+            if smoothed_trigram != 0:
+                total_prob += math.log2(smoothed_trigram)
+            else:
+                return 0 # this should never happen because unigram always has non-zero probability
+        return float(total_prob)
 
     def perplexity(self, corpus):
         """
         COMPLETE THIS METHOD (PART 6) 
         Returns the log probability of an entire sequence.
         """
-        return float("inf") 
+        # M = num words in the corpus
+        num_tokens = 0
+        total_probs = 0
+        for line in corpus:
+            num_tokens += len(line)
+            total_probs += self.sentence_logprob(line)
+        return float(2**(-1*(total_probs/num_tokens)))
 
 
 def essay_scoring_experiment(training_file1, training_file2, testdir1, testdir2):
@@ -196,21 +249,30 @@ def essay_scoring_experiment(training_file1, training_file2, testdir1, testdir2)
 
         total = 0
         correct = 0       
- 
+
+        # high score directory
         for f in os.listdir(testdir1):
-            pp = model1.perplexity(corpus_reader(os.path.join(testdir1, f), model1.lexicon))
-            # .. 
-    
+            pp_high = model1.perplexity(corpus_reader(os.path.join(testdir1, f), model1.lexicon))
+            pp_low = model2.perplexity(corpus_reader(os.path.join(testdir1, f), model2.lexicon))
+
+            if pp_high < pp_low:
+                correct += 1
+            total += 1
+
+        # low score directory
         for f in os.listdir(testdir2):
-            pp = model2.perplexity(corpus_reader(os.path.join(testdir2, f), model2.lexicon))
-            # .. 
+            pp_high = model1.perplexity(corpus_reader(os.path.join(testdir2, f), model1.lexicon))
+            pp_low = model2.perplexity(corpus_reader(os.path.join(testdir2, f), model2.lexicon))
+
+            if pp_low < pp_high:
+                correct += 1
+            total += 1
         
-        return 0.0
+        return float(correct/total)*100
 
 if __name__ == "__main__":
 
     model = TrigramModel(sys.argv[1])
-    #model = TrigramModel('./hw1_data/brown_test.txt')
 
     # put test code here...
     # or run the script from the command line with 
