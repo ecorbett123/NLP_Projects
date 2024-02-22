@@ -96,7 +96,36 @@ class CkyParser(object):
         the sentence is in the language described by the grammar. Otherwise
         return False
         """
-        # TODO, part 2
+        parse_table = {}
+        num_tokens = len(tokens)
+        # initialization
+        for i in range(num_tokens):
+            if (tokens[i],) not in self.grammar.rhs_to_rules:
+                return False # terminal not in set of terminals
+            parse_table[(i, i+1)] = self.grammar.rhs_to_rules[(tokens[i],)]
+
+        for leng in range(2, num_tokens+1):
+            for i in range(0, num_tokens - leng+1):
+                j = i + leng
+                for k in range(i+1, j):
+                    # check each combination of nonterminals and add to i,j map index
+                    if (i, k) in parse_table and (k, j) in parse_table:
+                        replace_list = []
+                        a_nonterminals = parse_table[(i, k)]
+                        b_nonterminals = parse_table[(k, j)]
+                        for a_nonterminal in a_nonterminals:
+                            for b_nonterminal in b_nonterminals:
+                                if (a_nonterminal[0], b_nonterminal[0]) in grammar.rhs_to_rules:
+                                    replace_list.extend(grammar.rhs_to_rules[(a_nonterminal[0], b_nonterminal[0])])
+                        if (i, j) not in parse_table and len(replace_list) > 0:
+                            parse_table[i, j] = replace_list
+                        elif len(replace_list) > 0:
+                            parse_table[i, j].extend(replace_list)
+
+        if (0, num_tokens) in parse_table:
+            for entry in parse_table[(0, num_tokens)]:
+                if entry[0] == 'TOP':
+                    return True
         return False 
        
     def parse_with_backpointers(self, tokens):
@@ -122,8 +151,9 @@ if __name__ == "__main__":
     with open('atis3.pcfg','r') as grammar_file: 
         grammar = Pcfg(grammar_file) 
         parser = CkyParser(grammar)
-        toks =['flights', 'from','miami', 'to', 'cleveland','.'] 
-        #print(parser.is_in_language(toks))
+        toks =['flights', 'from','miami', 'to', 'cleveland','.']
+        #toks = ['she', 'saw', 'the', 'cat', 'with', 'glasses']
+        print(parser.is_in_language(toks))
         #table,probs = parser.parse_with_backpointers(toks)
         #assert check_table_format(chart)
         #assert check_probs_format(probs)
