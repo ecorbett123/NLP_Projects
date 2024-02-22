@@ -132,9 +132,49 @@ class CkyParser(object):
         """
         Parse the input tokens and return a parse table and a probability table.
         """
-        # TODO, part 3
-        table= None
-        probs = None
+        table = {}
+        probs = {}
+        num_tokens = len(tokens)
+        # initialization
+        for i in range(num_tokens):
+            if (tokens[i],) not in self.grammar.rhs_to_rules:
+                return None, None  # terminal not in set of terminals
+
+            table_map = {}
+            prob_map = {}
+            # pick the terminal with the highest probability for a given non-terminal
+            for terminal in self.grammar.rhs_to_rules[(tokens[i],)]:
+                if terminal[0] not in table_map or math.log2(terminal[2]) > prob_map[terminal[0]]:
+                    table_map[terminal[0]] = tokens[i]
+                    prob_map[terminal[0]] = math.log2(terminal[2])
+
+            table[(i, i + 1)] = table_map
+            probs[(i, i + 1)] = prob_map
+
+        for leng in range(2, num_tokens + 1):
+            for i in range(0, num_tokens - leng + 1):
+                j = i + leng
+                table_map = {}
+                prob_map = {}
+                for k in range(i + 1, j):
+                    # check each combination of nonterminals and add max prob to table
+                    if (i, k) in table and (k, j) in table:
+                        a_nonterminals = table[(i, k)] # map of nonterminals to what made them up
+                        b_nonterminals = table[(k, j)]
+                        for a_nonterminal in a_nonterminals:
+                            for b_nonterminal in b_nonterminals:
+                                if (a_nonterminal, b_nonterminal) in grammar.rhs_to_rules:
+                                    # for each of the rules, add them to map of greater probability
+                                    for nonterminal in grammar.rhs_to_rules[(a_nonterminal, b_nonterminal)]:
+                                        if nonterminal[0] not in table_map or math.log2(nonterminal[2]) + probs[(i,k)][a_nonterminal] + probs[(k,j)][b_nonterminal] > prob_map[nonterminal[0]]:
+                                            table_map[nonterminal[0]] = ((a_nonterminal, i, k), (b_nonterminal, k, j))
+                                            combined_prob = math.log2(nonterminal[2]) + probs[(i,k)][a_nonterminal] + probs[(k,j)][b_nonterminal]
+                                            prob_map[nonterminal[0]] = combined_prob
+
+                if len(table_map.keys()) > 0:
+                    table[(i, j)] = table_map
+                    probs[(i, j)] = prob_map
+
         return table, probs
 
 
@@ -154,7 +194,7 @@ if __name__ == "__main__":
         toks =['flights', 'from','miami', 'to', 'cleveland','.']
         #toks = ['she', 'saw', 'the', 'cat', 'with', 'glasses']
         print(parser.is_in_language(toks))
-        #table,probs = parser.parse_with_backpointers(toks)
-        #assert check_table_format(chart)
-        #assert check_probs_format(probs)
+        table,probs = parser.parse_with_backpointers(toks)
+        assert check_table_format(table)
+        assert check_probs_format(probs)
         
