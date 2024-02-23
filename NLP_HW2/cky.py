@@ -182,8 +182,14 @@ def get_tree(chart, i,j,nt):
     """
     Return the parse-tree rooted in non-terminal nt and covering span i,j.
     """
-    # TODO: Part 4
-    return None 
+    if (i,j) not in chart or nt not in chart[(i,j)]:
+        return None
+    if isinstance(chart[(i,j)][nt], str):
+        return (nt, chart[(i,j)][nt])
+
+    split1 = chart[(i,j)][nt][0]
+    split2 = chart[(i, j)][nt][1]
+    return (nt, get_tree(chart, split1[1], split1[2], split1[0]), get_tree(chart, split2[1], split2[2], split2[0]))
  
        
 if __name__ == "__main__":
@@ -197,4 +203,5 @@ if __name__ == "__main__":
         table,probs = parser.parse_with_backpointers(toks)
         assert check_table_format(table)
         assert check_probs_format(probs)
+        print(get_tree(table, 0, len(toks), grammar.startsymbol))
         
