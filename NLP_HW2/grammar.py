@@ -77,4 +77,8 @@ class Pcfg(object):
 if __name__ == "__main__":
     with open(sys.argv[1],'r') as grammar_file:
         grammar = Pcfg(grammar_file)
+        if grammar.verify_grammar():
+            print("The grammar is a valid PCFG in CNF")
+        else:
+            print("Error: not a valid PCFG in CNF!")
         
