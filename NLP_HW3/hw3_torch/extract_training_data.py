@@ -116,40 +116,68 @@ class FeatureExtractor(object):
 
     def get_input_representation(self, words, pos, state):
         # TODO: Write this method for Part 2
-        state_rep = np.ndarray(6)
+        state_rep = [0]*6
         i = len(state.stack)
-        if i > 0:
-            state_rep[0] = self.word_vocab[state.stack[-1]]
-            if i > 1:
-                state_rep[1] = self.word_vocab[state.stack[-2]]
-                if i > 2:
-                    state_rep[2] = self.word_vocab[state.stack[-3]]
-                else:
-                    state_rep[2] = self.word_vocab["<NULL>"]
-            else:
-                state_rep[1] = self.word_vocab["<NULL>"]
-        else:
+        if i < 1:
             state_rep[0] = self.word_vocab["<NULL>"]
+            state_rep[1] = self.word_vocab["<NULL>"]
+            state_rep[2] = self.word_vocab["<NULL>"]
+        elif i == 1:
+            state_rep[0] = self.get_word_index(state.stack[-1], words, pos)
+            state_rep[1] = self.word_vocab["<NULL>"]
+            state_rep[2] = self.word_vocab["<NULL>"]
+        elif i == 2:
+            state_rep[0] = self.get_word_index(state.stack[-1], words, pos)
+            state_rep[1] = self.get_word_index(state.stack[-2], words, pos)
+            state_rep[2] = self.word_vocab["<NULL>"]
+        else:
+            state_rep[0] = self.get_word_index(state.stack[-1], words, pos)
+            state_rep[1] = self.get_word_index(state.stack[-2], words, pos)
+            state_rep[2] = self.get_word_index(state.stack[-3], words, pos)
 
         i = len(state.buffer)
-        if i > 0:
-            state_rep[4] = self.word_vocab[state.buffer[-1]]
-            if i > 1:
-                state_rep[5] = self.word_vocab[state.buffer[-2]]
-                if i > 2:
-                    state_rep[6] = self.word_vocab[state.buffer[-3]]
-                else:
-                    state_rep[6] = self.word_vocab["<NULL>"]
-            else:
-                state_rep[5] = self.word_vocab["<NULL>"]
-        else:
+        if i < 1:
+            state_rep[3] = self.word_vocab["<NULL>"]
             state_rep[4] = self.word_vocab["<NULL>"]
+            state_rep[5] = self.word_vocab["<NULL>"]
+        elif i == 1:
+            state_rep[3] = self.get_word_index(state.buffer[-1], words, pos)
+            state_rep[4] = self.word_vocab["<NULL>"]
+            state_rep[5] = self.word_vocab["<NULL>"]
+        elif i == 2:
+            state_rep[3] = self.get_word_index(state.buffer[-1], words, pos)
+            state_rep[4] = self.get_word_index(state.buffer[-2], words, pos)
+            state_rep[5] = self.word_vocab["<NULL>"]
+        else:
+            state_rep[3] = self.get_word_index(state.buffer[-1], words, pos)
+            state_rep[4] = self.get_word_index(state.buffer[-2], words, pos)
+            state_rep[5] = self.get_word_index(state.buffer[-3], words, pos)
 
-        return np.zeros(6)
+        return np.array(state_rep)
 
-    def get_output_representation(self, output_pair):  
-        # TODO: Write this method for Part 2
-        return np.zeros(91)
+    def get_word_index(self, word_index, words, pos):
+        if word_index == 0:
+            return self.word_vocab['<ROOT>']
+
+        word = words[word_index]
+        if word in self.word_vocab:
+            return self.word_vocab[word]
+
+        tag_pos = pos[word_index]
+        if tag_pos == 'CD':
+            return self.word_vocab['<CD>']
+        if tag_pos == 'NNP' or tag_pos == 'NNPS':
+            return self.word_vocab['<NNP>']
+
+        return self.word_vocab['<UNK>']
+
+    def get_output_representation(self, output_pair):
+        one_hot = [0]*91
+        moves = ['shift', 'right_arc', 'left_arc']
+        index_2 = moves.index(output_pair[0])
+        index = 0 if index_2 == 0 else dep_relations.index(output_pair[1])
+        one_hot[index_2*(index+1)] = 1
+        return np.array(one_hot)
 
      
     
