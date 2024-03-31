@@ -10,7 +10,7 @@ from extract_training_data import FeatureExtractor
 
 class DependencyDataset(Dataset):
 
-  def __init__(self, inputs_filename, output_filename):
+  def __init__(self, input_filename, output_filename):
     self.inputs = np.load(input_filename)
     self.outputs = np.load(output_filename)
 
@@ -25,17 +25,21 @@ class DependencyModel(Module):
 
   def __init__(self, word_types, outputs):
     super(DependencyModel, self).__init__()
-    # TODO: complete for part 3
+    self.embedding = torch.nn.Embedding(num_embeddings=word_types, embedding_dim=128)
+    self.lay2 = torch.nn.Linear(768, 128)
+    self.lay3 = torch.nn.Linear(128, 91)
 
   def forward(self, inputs):
-
-    # TODO: complete for part 3
-    return torch.zeros(inputs.shape(0), 91)  # replace this line
+    embedded = self.embedding(inputs)
+    flatten = embedded.view(16, -1)
+    output = self.lay2(flatten)
+    output = torch.nn.functional.relu(output)
+    return self.lay3(output)
 
 
 def train(model, loader): 
 
-  loss_function = NLLoss(reduction='mean')
+  loss_function = NLLLoss(reduction='mean')
 
   LEARNING_RATE = 0.01 
   optimizer = torch.optim.Adagrad(params=model.parameters(), lr=LEARNING_RATE)
@@ -67,7 +71,7 @@ def train(model, loader):
       print(f"Current average loss: {curr_avg_loss}")
 
     # To compute training accuracy for this epoch 
-    correct += sum(torch.argmax(logits, dim=1) == torch.argmax(targets, dim=1))
+    correct += sum(torch.argmax(predictions, dim=1) == torch.argmax(targets, dim=1))
     total += len(inputs)
       
     # Run the backward pass to update parameters 
