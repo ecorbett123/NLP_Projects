@@ -21,6 +21,29 @@ class Parser(object):
         # The following dictionary from indices to output actions will be useful
         self.output_labels = dict([(index, action) for (action, index) in extractor.output_labels.items()])
 
+    def is_valid_action(self, action, stack, buffer):
+        if action[0] == 'shift' and len(stack) != 0 and len(buffer) == 1:
+            return False
+
+        # arc-left or arc-right are not permitted if the stack is empty
+        if action[0] != 'shift':
+            if len(stack) < 1:
+                return False
+
+        # root node must never be the target of left-arc
+        if action[0] == 'left_arc' and len(stack) == 1:
+            return False
+
+        return True
+
+    def do_action(self, action, state):
+        if action[0] == 'shift':
+            state.shift()
+        elif action[0] == 'left_arc': # left arc
+            state.left_arc(action[1])
+        elif action[0] == 'right_arc':
+            state.right_arc(action[1])
+
     def parse_sentence(self, words, pos):
 
         state = State(range(1,len(words)))
@@ -28,10 +51,13 @@ class Parser(object):
 
         # TODO: Write the body of this loop for part 5
         while state.buffer:
-          pass # replace
-
-
-  
+            actions = self.model(torch.LongTensor(self.extractor.get_input_representation(words, pos, state)))
+            indices = np.argsort(actions.tolist())[::-1]
+            for index in indices:
+                action = self.output_labels[index]
+                if self.is_valid_action(action, state.stack, state.buffer):
+                    self.do_action(action, state)
+                    break
 
         result = DependencyStructure()
         for p,c,r in state.deps:
