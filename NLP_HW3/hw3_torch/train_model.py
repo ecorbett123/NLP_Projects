@@ -2,8 +2,8 @@ import sys
 import numpy as np
 import torch
 
-from torch.nn import Module, Linear, Embedding, NLLLoss
-from torch.nn.functional import relu, log_softmax
+from torch.nn import Module, Linear, Embedding, CrossEntropyLoss
+from torch.nn.functional import relu
 from torch.utils.data import Dataset, DataLoader 
 
 from extract_training_data import FeatureExtractor
@@ -25,21 +25,25 @@ class DependencyModel(Module):
 
   def __init__(self, word_types, outputs):
     super(DependencyModel, self).__init__()
-    self.embedding = torch.nn.Embedding(num_embeddings=word_types, embedding_dim=128)
-    self.lay2 = torch.nn.Linear(768, 128)
-    self.lay3 = torch.nn.Linear(128, 91)
+    self.embedding = Embedding(num_embeddings=word_types, embedding_dim=128)
+    self.lay2 = Linear(768, 128)
+    self.lay3 = Linear(128, 91)
 
   def forward(self, inputs):
     embedded = self.embedding(inputs)
-    flatten = embedded.view(16, -1)
+    if len(inputs.shape) > 1:
+        batch = inputs.shape[0]
+        flatten = embedded.view(batch, -1)
+    else:
+        flatten = embedded.view(-1)
     output = self.lay2(flatten)
-    output = torch.nn.functional.relu(output)
+    output = relu(output)
     return self.lay3(output)
 
 
 def train(model, loader): 
 
-  loss_function = NLLLoss(reduction='mean')
+  loss_function = CrossEntropyLoss(reduction='mean')
 
   LEARNING_RATE = 0.01 
   optimizer = torch.optim.Adagrad(params=model.parameters(), lr=LEARNING_RATE)

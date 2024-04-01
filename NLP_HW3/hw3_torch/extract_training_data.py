@@ -115,7 +115,6 @@ class FeatureExtractor(object):
         return vocab     
 
     def get_input_representation(self, words, pos, state):
-        # TODO: Write this method for Part 2
         state_rep = [0]*6
         i = len(state.stack)
         if i < 1:
@@ -172,11 +171,8 @@ class FeatureExtractor(object):
         return self.word_vocab['<UNK>']
 
     def get_output_representation(self, output_pair):
-        one_hot = [0]*91
-        moves = ['shift', 'right_arc', 'left_arc']
-        index_2 = moves.index(output_pair[0])
-        index = 0 if index_2 == 0 else dep_relations.index(output_pair[1])
-        one_hot[index_2*(index+1)] = 1
+        one_hot = [0.0]*91
+        one_hot[self.output_labels[output_pair]] = 1.0
         return np.array(one_hot)
 
      
